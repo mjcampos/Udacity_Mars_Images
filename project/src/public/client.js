@@ -2,6 +2,7 @@ let store = {
     user: { name: "Student" },
     apod: '',
     rovers: ['Curiosity', 'Opportunity', 'Spirit'],
+    roverData: []
 }
 
 // add our markup to the page
@@ -13,30 +14,22 @@ const updateStore = (store, newState) => {
 }
 
 const render = async (root, state) => {
-    root.innerHTML = App(state)
-}
+    let { roverData } = state;
 
+    root.innerHTML = App(state);
+
+    RoverImages(roverData);
+}
 
 // create content
 const App = (state) => {
-    let { rovers, apod } = state
-
     return `
         <header></header>
         <main>
             ${Greeting(store.user.name)}
-            <section>
-                <h3>Put things on the page!</h3>
-                <p>Here is an example section.</p>
-                <p>
-                    One of the most popular websites at NASA is the Astronomy Picture of the Day. In fact, this website is one of
-                    the most popular websites across all federal agencies. It has the popular appeal of a Justin Bieber video.
-                    This endpoint structures the APOD imagery and associated metadata so that it can be repurposed for other
-                    applications. In addition, if the concept_tags parameter is set to True, then keywords derived from the image
-                    explanation are returned. These keywords could be used as auto-generated hashtags for twitter or instagram feeds;
-                    but generally help with discoverability of relevant imagery.
-                </p>
-                ${ImageOfTheDay(apod)}
+            
+
+            <section id="roverData">
             </section>
         </main>
         <footer></footer>
@@ -45,7 +38,7 @@ const App = (state) => {
 
 // listening for load event because page should load before any JS is called
 window.addEventListener('load', () => {
-    render(root, store)
+    render(root, store);
 })
 
 // ------------------------------------------------------  COMPONENTS
@@ -91,6 +84,85 @@ const ImageOfTheDay = (apod) => {
     }
 }
 
+const RoverImages = roverData => {
+    let roverArr = [];
+    let main = document.getElementById("roverData");
+
+    if (roverData.length < 3) {
+        getRoverImages(store);
+
+        main.appendChild(LoadingMessage());
+    } else {
+        for(let i = 0; i < roverData.length; i++) {
+            const roverName = roverData[i].rover.name;
+            const launchDate = roverData[i].rover.launch_date;
+            const landingDate = roverData[i].rover.landing_date;
+            const status = roverData[i].rover.status;
+            const img_taken = roverData[i].earth_date;
+            const img = roverData[i].img_src;
+
+            roverArr.push(CreateRover(roverName, launchDate, landingDate, status, img_taken, img));
+        }
+
+        roverArr.forEach(el => main.appendChild(el));
+    }
+
+}
+
+// Create Rover div with content
+function CreateRover(roverName, launchDate, landingDate, status, img_taken, img) {
+    let t;    // Global text node
+
+    // Create parent div
+    let parentDiv = document.createElement('div');
+
+    // Add Rover name with h1 tags and append to parentDiv
+    let h1 = document.createElement('h1');
+    t = document.createTextNode(`Rover name: ${roverName}`);
+    h1.appendChild(t);
+    parentDiv.appendChild(h1);
+
+    // Add launch date with p tags and append to parentDiv
+    let p = document.createElement('p');
+    t = document.createTextNode(`Launch Date: ${launchDate}`);
+    p.appendChild(t);
+    parentDiv.appendChild(p);
+
+    // Add landing date with p tags and append to parentDiv
+    let landingDateText = document.createElement('p');
+    t = document.createTextNode(`Landing Date: ${landingDate}`);
+    landingDateText.appendChild(t);
+    parentDiv.appendChild(landingDateText);
+
+    // Add status with h2 tags and append to parentDiv
+    let h2 = document.createElement('h2');
+    t = document.createTextNode(`Status: ${status}`);
+    h2.appendChild(t);
+    parentDiv.appendChild(h2);
+
+    // Add image taken with p tags and append to parentDiv
+    let imageTakenText = document.createElement('p');
+    t = document.createTextNode(img_taken);
+    imageTakenText.appendChild(t);
+    parentDiv.appendChild(imageTakenText);
+
+    // Add image
+    let image = document.createElement('img');
+    image.src = img;
+    image.height = 100;
+    image.width = 100;
+    parentDiv.appendChild(image);
+
+    return parentDiv;
+}
+
+function LoadingMessage() {
+    let p = document.createElement('p');
+    p.appendChild(document.createTextNode('Loading...'));
+
+    return p;
+}
+
 // ------------------------------------------------------  API CALLS
 
 // Example API call
@@ -99,7 +171,13 @@ const getImageOfTheDay = (state) => {
 
     fetch(`http://localhost:3000/apod`)
         .then(res => res.json())
-        .then(apod => updateStore(store, { apod }))
+        .then(apod => updateStore(store, { apod }));
+}
 
-    return data;
+const getRoverImages = state => {
+    let { roverData } = state;
+
+    fetch(`http://localhost:3000/rovers`)
+        .then(res => res.json())
+        .then(roverData => updateStore(store, { roverData }));
 }
